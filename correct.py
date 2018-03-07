@@ -63,12 +63,6 @@ def read_csv_dict(dictfile):
 	with open(dictfile) as fp:
 		csv_reader = csv.reader(fp)
 		dict_words = set([word.replace("\"","").strip().lower() for word, _, _ in csv_reader])
-
-	with open(dictfile) as fp:
-		csv_reader = csv.reader(fp)
-		meaning_words = set([word for _, _, meaning in csv_reader for word in re.findall(r'\w+', meaning.lower())])
-		dict_words = dict_words.union(meaning_words)
-
 	return dict_words
 
 
@@ -87,8 +81,8 @@ if __name__ == '__main__':
 
 	# If executing first time
 	if first:
-		# word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
-		word_set = read_list_dict('Data/Dictionaries/word.list')
+		word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
+		word_set = word_set.union(read_list_dict('Data/Dictionaries/word.list'))
 
 		# Build Checker model
 		checker = SpellChecker(word_set)
