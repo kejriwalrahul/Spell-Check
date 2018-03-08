@@ -7,6 +7,7 @@
 
 import math
 import csv
+import sys
 import re
 import cPickle
 import numpy as np
@@ -173,7 +174,11 @@ def read_edit_counts(edit_file):
 
 if __name__ == '__main__':
 
-	first = True
+	if len(sys.argv) != 3:
+		print "Usage: python correct.py <infile> <outfile>"
+		sys.exit(1)
+
+	first = False
 
 	# If executing first time
 	if first:
@@ -197,4 +202,8 @@ if __name__ == '__main__':
 	with open('model.pkl', 'rb') as fp:
 		checker = cPickle.load(fp)
 
-	print checker.correct('emberassment')
+	with open(sys.argv[1]) as fin, open(sys.argv[2], 'w') as fout:
+		for line in fin:
+			word = line.strip()
+			guesses = checker.correct(word)
+			fout.write('\t'.join([word] + [guess for guess, score in guesses]) + '\n')
