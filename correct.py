@@ -15,7 +15,6 @@ import numpy as np
 import fuzzy
 from weighted_levenshtein import dam_lev
 
-
 class SpellChecker:
 
 	def __init__(self, word_set, unigrams, k, edit_counts, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
@@ -42,14 +41,6 @@ class SpellChecker:
 		self.transpose_costs  = np.ones((128,128))
 		self.substitute_costs = np.ones((128,128))
 		
-		"""
-		# Store edit counts
-		self.edit_counts = {}
-		for edit, count in edit_counts:
-			self.edit_counts[edit] = count + k
-		self.total_edits = sum((count for edit,count in edit_counts)) + k*len(edit_counts) + k
-		"""
-
 		# Build phonetic index - Double Metaphone
 		self.dmeta = fuzzy.DMetaphone()
 		self.phonetic_buckets = {}
@@ -88,15 +79,15 @@ class SpellChecker:
 		candidates_2 = self.__filter_unknown(candidates_2)
 
 		metaphone_bkts = self.dmeta(wrong_word)
-		candidates_3 = self.phonetic_buckets[metaphone_bkts[0]] + (self.phonetic_buckets[metaphone_bkts[1]] if metaphone_bkts[1] != None else [])
+		candidates_3 = self.phonetic_buckets.get(metaphone_bkts[0], []) + (self.phonetic_buckets.get(metaphone_bkts[1], []) if metaphone_bkts[1] != None else [])
 		candidates_3 = set(candidates_3)
 
 		return (candidates_3.union(candidates).union(candidates_2))
 
 
 	def __score(self, wrong_word, candidate):
-		dl_dist = dam_lev(wrong_word, candidate, insert_costs=self.insert_costs, substitute_costs=self.substitute_costs, delete_costs=self.delete_costs, transpose_costs=self.transpose_costs)
-		log_prior = self.priors[candidate] if candidate in self.priors else (float(self.k) / self.N)
+		dl_dist = dam_lev(wrong_word, candidate, insert_costs=self.insert_costs, substitute_costs=self.substitute_costs, delete_costs=self.delete_costs, transpose_costs=self.transpose_costs) / max(len(wrong_word), len(candidate))
+		log_prior = self.priors[candidate] if candidate in self.priors else math.log(float(self.k) / self.N)
 		return -dl_dist + self.lamda * log_prior
 
 
@@ -110,28 +101,14 @@ class SpellChecker:
 		return sorted(scores, key= lambda x:-x[1])[:top_k]
 
 
-	"""
-	def __prob_edit(self, edits):
-
-
-	def __recursiveCandidates(self, head, tail, edits_left, edits_used, results):
-		curr_state = head + tail
-		
-		if curr_state in self.dict_words:
-			if curr_state in results:	results[curr_state] = max(results[curr_state], edits_used, key=self.__prob_edit)
-			else:						results[curr_state] = edits_used
-
-		if edits_left <= 0:		
-			return
-
-		possible_extensions = [head + c for c in self.alphabet]
-
-
-	def __generateCandidates(self, wrong_word):
-		results = {}
-		self.__recursiveCandidates('', wrong_word, 2, [], results)
-		return results
-	"""
+	def accuracy_score(self, wrong_words, correct_words):
+		score = 0
+		for w,c in tqdm(zip(wrong_words, correct_words)):
+			guesses = self.correct(w)
+			if   len(guesses) >= 1 and guesses[0][0] == c:	score += 9
+			elif len(guesses) >= 2 and guesses[1][0] == c: 	score += 3
+			elif len(guesses) >= 3 and guesses[2][0] == c: 	score += 1
+		return float(score) / (9 * len(wrong_words))
 
 
 """
@@ -172,16 +149,29 @@ def read_edit_counts(edit_file):
 	return lines
 
 
+def error_file_accuracy(file):
+	with open(file) as fp:
+		ws = []
+		cs = []
+		for l in fp:
+			c = l.split(':')[0]
+			for w in l.split(':')[1].split(','):
+				ws.append(w.strip().split('*')[0])
+				cs.append(c.strip())
+	return checker.accuracy_score(ws, cs)
+
+
 if __name__ == '__main__':
 
 	if len(sys.argv) != 3:
 		print "Usage: python correct.py <infile> <outfile>"
 		sys.exit(1)
 
-	first = False
+	FRESH = False
+	DEBUG = False
 
 	# If executing first time
-	if first:
+	if FRESH:
 
 		# Read dictionaries for candidate generation
 		word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
@@ -202,8 +192,15 @@ if __name__ == '__main__':
 	with open('model.pkl', 'rb') as fp:
 		checker = cPickle.load(fp)
 
+	# Output results
 	with open(sys.argv[1]) as fin, open(sys.argv[2], 'w') as fout:
 		for line in fin:
 			word = line.strip()
 			guesses = checker.correct(word)
-			fout.write('\t'.join([word] + [guess for guess, score in guesses]) + '\n')
+			if DEBUG == True:
+				fout.write('\t'.join([word] + ['(%s,%.2f)'%(guess,score) for guess,score in guesses]) + '\n')
+			else:
+				fout.write('\t'.join([word] + [guess for guess, score in guesses]) + '\n')
+
+	# Measure model accuracy
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt')
