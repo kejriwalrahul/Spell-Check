@@ -14,6 +14,7 @@ import numpy as np
 
 import fuzzy
 from weighted_levenshtein import dam_lev
+from tqdm import tqdm
 
 class SpellChecker:
 
@@ -24,6 +25,12 @@ class SpellChecker:
 
 		# Store all known words
 		self.dict_words = word_set
+
+		# Build and store valid prefixes
+		self.valid_prefixes = set([])
+		for word in self.dict_words:
+			for i in range(len(word)+1):
+				self.valid_prefixes.add(word[:i])
 
 		# Weighting likelihood & prior
 		self.lamda = lamda
@@ -71,18 +78,64 @@ class SpellChecker:
 		return set([word for word in words if word in self.dict_words])
 
 
+	def __fastGenerateNeighbors(self, left, right, max_dist=2):
+		# Boundary Conditions
+		if max_dist == 0:
+			if left+right in self.valid_prefixes:	return [left+right]
+			else:									return []
+
+		if len(right) == 0:
+			results = []
+			if left in self.valid_prefixes:
+				results.append(left)
+			for letter in self.alphabet:
+				if left + letter in self.valid_prefixes:
+					results.append(left + letter)	
+			return list(set(results))
+
+		# Update bounds
+		left = left + right[:1]
+		right = right[1:]
+
+		# Initialize neighbors
+		neighbor_set = []
+
+		# Deletions
+		if left[:-1] in self.valid_prefixes:
+			neighbor_set += self.__fastGenerateNeighbors(left[:-1], right, max_dist-1)
+
+		# Insertions	
+		for letter in self.alphabet:
+			if left[:-1]+letter+left[-1:]  in self.valid_prefixes:
+				neighbor_set += self.__fastGenerateNeighbors(left[:-1]+letter+left[-1:], right, max_dist-1)
+
+		# Substitutions
+		for letter in self.alphabet:
+			if left[:-1]+letter in self.valid_prefixes:
+				neighbor_set += self.__fastGenerateNeighbors(left[:-1]+letter, right, max_dist - (1 if letter != left[-1] else 0))
+
+		# Transpositions
+		if len(right) >= 1:
+			if left[:-1] + right[0] + left[-1] in self.valid_prefixes:
+				neighbor_set += self.__fastGenerateNeighbors(left[:-1]+right[0]+left[-1], right[1:], max_dist-1)
+
+		return list(set(neighbor_set))
+
+
 	def __generateCandidates(self, wrong_word):
-		candidates = self.__edit_neighbors_1(wrong_word)
-		candidates = self.__filter_unknown(candidates)
+		# candidates = self.__edit_neighbors_1(wrong_word)		
+		# candidates_2 = set([next_candidate for candidate in candidates for next_candidate in self.__edit_neighbors_1(candidate)])
 		
-		candidates_2 = set([next_candidate for candidate in candidates for next_candidate in self.__edit_neighbors_1(candidate)])
-		candidates_2 = self.__filter_unknown(candidates_2)
+		# candidates = self.__filter_unknown(candidates)
+		# candidates_2 = self.__filter_unknown(candidates_2)
+
+		candidates = self.__fastGenerateNeighbors('', wrong_word, 2)
 
 		metaphone_bkts = self.dmeta(wrong_word)
 		candidates_3 = self.phonetic_buckets.get(metaphone_bkts[0], []) + (self.phonetic_buckets.get(metaphone_bkts[1], []) if metaphone_bkts[1] != None else [])
 		candidates_3 = set(candidates_3)
 
-		return (candidates_3.union(candidates).union(candidates_2))
+		return (candidates_3.union(candidates))
 
 
 	def __score(self, wrong_word, candidate):
@@ -149,16 +202,74 @@ def read_edit_counts(edit_file):
 	return lines
 
 
-def error_file_accuracy(file):
+"""
+	Check accuracy of model and compare with other libs
+"""
+def error_file_accuracy(file, checker, fil_type=0, verbose=False):
+
+	# Read file
 	with open(file) as fp:
-		ws = []
-		cs = []
-		for l in fp:
-			c = l.split(':')[0]
-			for w in l.split(':')[1].split(','):
-				ws.append(w.strip().split('*')[0])
-				cs.append(c.strip())
-	return checker.accuracy_score(ws, cs)
+		lines = ''.join(fp.readlines())
+
+	# Parse cases
+	ws = []
+	cs = []
+	if fil_type == 0:
+		instances = lines.split('$')
+		for instance in instances:
+			toks = [el for el in instance.split('\n') if el != '']
+			ws += toks[1:]
+			cs += [toks[0] for i in range(len(toks)-1)]
+	elif fil_type == 1:
+		instances = lines.split('\n')
+		for instance in instances:
+			toks = [el for el in instance.split(':') if el != '']
+			curr_ws = [el.split('*')[0].strip() for el in toks[1].split(',')]
+			ws += curr_ws
+			cs += [toks[0].strip() for i in range(len(curr_ws))]
+	elif fil_type == 2:
+		instances = lines.split('$')
+		for instance in instances:
+			toks = [el for el in instance.split('\n') if el != '']
+			ws += [tok.split(' ')[0] for tok in toks[1:]]
+			cs += [toks[0] for i in range(len(toks)-1)]		
+	else:
+		raise NotImplementedError
+
+	"""
+		Get model score
+	"""
+	score = 0
+	for w,c in tqdm(zip(ws, cs)):
+		guesses = checker.correct(w)
+		if   len(guesses) >= 1 and guesses[0][0] == c:	score += 9
+		elif len(guesses) >= 2 and guesses[1][0] == c: 	score += 3
+		elif len(guesses) >= 3 and guesses[2][0] == c: 	score += 1
+		if verbose:
+			print "(%s,%s): %s" % (w,c,str(guesses))
+
+	"""
+		Compare with PyEnchant Lib
+	"""	
+	import enchant
+	d = enchant.Dict('en_GB')
+	score2 = 0
+	for w,c in tqdm(zip(ws, cs)):
+		guesses = d.suggest(w)
+		if   len(guesses) >= 1 and guesses[0] == c:	score2 += 9
+		elif len(guesses) >= 2 and guesses[1] == c: score2 += 3
+		elif len(guesses) >= 3 and guesses[2] == c: score2 += 1
+
+	"""
+		Compare with Autocorrect Lib
+	"""
+	from autocorrect import spell
+	score3 = 0
+	for w,c in tqdm(zip(ws, cs)):
+		if c == spell(w):
+			score3 += 9
+
+	return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score2) / (9 * len(ws))
 
 
 if __name__ == '__main__':
@@ -203,4 +314,7 @@ if __name__ == '__main__':
 				fout.write('\t'.join([word] + [guess for guess, score in guesses]) + '\n')
 
 	# Measure model accuracy
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt')
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0)
+	print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2)
