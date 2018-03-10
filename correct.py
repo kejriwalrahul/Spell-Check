@@ -141,12 +141,9 @@ class SpellChecker:
 		candidates_meta = set(candidates_meta)
 
 		return (candidates_meta.union(candidates))
+
 		
 	def generateCandidates(self,wrong_word):
-		return self.__generateCandidates(wrong_word)
-
-
-	def publicGenerateCandidates(self, wrong_word):
 		return self.__generateCandidates(wrong_word)
 
 
