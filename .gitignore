@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+Observations
+out
+output
+model.pkl
+Data/Errors/Results/*

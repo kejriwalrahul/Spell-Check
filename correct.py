@@ -123,19 +123,24 @@ class SpellChecker:
 
 
 	def __generateCandidates(self, wrong_word):
-		# candidates = self.__edit_neighbors_1(wrong_word)		
-		# candidates_2 = set([next_candidate for candidate in candidates for next_candidate in self.__edit_neighbors_1(candidate)])
+		"""
+		# Old Approach - Too Slow (remove candidates_2 for fast+efficient)
+		candidates = self.__edit_neighbors_1(wrong_word)		
+		candidates_2 = set([next_candidate for candidate in candidates for next_candidate in self.__edit_neighbors_1(candidate)])
 		
-		# candidates = self.__filter_unknown(candidates)
-		# candidates_2 = self.__filter_unknown(candidates_2)
+		candidates = self.__filter_unknown(candidates)
+		candidates_2 = self.__filter_unknown(candidates_2)
+		"""
 
+		# Edit Distance based candidates
 		candidates = self.__fastGenerateNeighbors('', wrong_word, 2)
 
+		# DMetaphone based candidates
 		metaphone_bkts = self.dmeta(wrong_word)
-		candidates_3 = self.phonetic_buckets.get(metaphone_bkts[0], []) + (self.phonetic_buckets.get(metaphone_bkts[1], []) if metaphone_bkts[1] != None else [])
-		candidates_3 = set(candidates_3)
+		candidates_meta = self.phonetic_buckets.get(metaphone_bkts[0], []) + (self.phonetic_buckets.get(metaphone_bkts[1], []) if metaphone_bkts[1] != None else [])
+		candidates_meta = set(candidates_meta)
 
-		return (candidates_3.union(candidates))
+		return (candidates_meta.union(candidates))
 
 
 	def __score(self, wrong_word, candidate):
@@ -315,6 +320,6 @@ if __name__ == '__main__':
 
 	# Measure model accuracy
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0)
-	print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0)
+	print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2)
