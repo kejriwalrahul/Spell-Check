@@ -143,6 +143,10 @@ class SpellChecker:
 		return (candidates_meta.union(candidates))
 
 
+	def publicGenerateCandidates(self, wrong_word):
+		return self.__generateCandidates(wrong_word)
+
+
 	def __score(self, wrong_word, candidate):
 		dl_dist = dam_lev(wrong_word, candidate, insert_costs=self.insert_costs, substitute_costs=self.substitute_costs, delete_costs=self.delete_costs, transpose_costs=self.transpose_costs) / max(len(wrong_word), len(candidate))
 		log_prior = self.priors[candidate] if candidate in self.priors else math.log(float(self.k) / self.N)
@@ -274,7 +278,7 @@ def error_file_accuracy(file, checker, fil_type=0, verbose=False):
 		if c == spell(w):
 			score3 += 9
 
-	return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score2) / (9 * len(ws))
+	return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score3) / (9 * len(ws))
 
 
 if __name__ == '__main__':
@@ -320,6 +324,7 @@ if __name__ == '__main__':
 
 	# Measure model accuracy
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0)
-	print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2)
