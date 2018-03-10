@@ -103,5 +103,5 @@ ENV/
 Observations
 out
 output
-model.pkl
+*.pkl
 Data/Errors/Results/*
