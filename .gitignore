@@ -105,3 +105,4 @@ out
 output
 *.pkl
 Data/Errors/Results/*
+Data/Vectors
