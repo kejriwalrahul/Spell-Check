@@ -141,6 +141,7 @@ class SpellChecker:
 		candidates_meta = set(candidates_meta)
 
 		return (candidates_meta.union(candidates))
+
 		
 	def generateCandidates(self,wrong_word):
 		return self.__generateCandidates(wrong_word)
@@ -277,7 +278,7 @@ def error_file_accuracy(file, checker, fil_type=0, verbose=False):
 		if c == spell(w):
 			score3 += 9
 
-	return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score2) / (9 * len(ws))
+	return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score3) / (9 * len(ws))
 
 
 if __name__ == '__main__':
@@ -323,6 +324,7 @@ if __name__ == '__main__':
 
 	# Measure model accuracy
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0)
-	print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2)
