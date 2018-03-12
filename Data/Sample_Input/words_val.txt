@@ -1,0 +1,25 @@
+chruch	church	crouch
+contanct	contact	constant	
+dessapoint	disappoint	disappoints	
+faze	face	phase
+incredable	incredible	incredibly	
+indefinate	indefinite	indefinites	
+jeprodise	jeopardize	jeopardizes	
+laguage	luggage	language
+leeiissy	lazy	legacies	
+letf	let	left	
+meenwhal	meanwhile	millenial	
+ocassionaly	occasionally	occasional	
+peice	piece	peace	
+playwrite	playwright	playwrights	
+recieve	receive	receiver	
+revelent	reverent	relevant	
+sigth	sight	sigh	
+suprise	surprise		
+surounded	surrounded	surrounds	
+swearinge	swearing	gearings	
+sylables	syllables	syllable	
+tierd	tired	tiered	
+tommorow	tomorrow	tomorrows	
+tounge	tongue	touting	
+vouture	voucher	future	
