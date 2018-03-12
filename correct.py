@@ -214,7 +214,7 @@ def read_edit_counts(edit_file):
 """
 	Check accuracy of model and compare with other libs
 """
-def error_file_accuracy(file, checker, fil_type=0, verbose=False):
+def error_file_accuracy(file, checker, fil_type=0, verbose=False, suppress=False):
 
 	# Read file
 	with open(file) as fp:
@@ -257,28 +257,31 @@ def error_file_accuracy(file, checker, fil_type=0, verbose=False):
 		if verbose:
 			print "(%s,%s): %s" % (w,c,str(guesses))
 
-	"""
-		Compare with PyEnchant Lib
-	"""	
-	import enchant
-	d = enchant.Dict('en_GB')
-	score2 = 0
-	for w,c in tqdm(zip(ws, cs)):
-		guesses = d.suggest(w)
-		if   len(guesses) >= 1 and guesses[0] == c:	score2 += 9
-		elif len(guesses) >= 2 and guesses[1] == c: score2 += 3
-		elif len(guesses) >= 3 and guesses[2] == c: score2 += 1
+	if not suppress:
+		"""
+			Compare with PyEnchant Lib
+		"""	
+		import enchant
+		d = enchant.Dict('en_GB')
+		score2 = 0
+		for w,c in tqdm(zip(ws, cs)):
+			guesses = d.suggest(w)
+			if   len(guesses) >= 1 and guesses[0] == c:	score2 += 9
+			elif len(guesses) >= 2 and guesses[1] == c: score2 += 3
+			elif len(guesses) >= 3 and guesses[2] == c: score2 += 1
 
-	"""
-		Compare with Autocorrect Lib
-	"""
-	from autocorrect import spell
-	score3 = 0
-	for w,c in tqdm(zip(ws, cs)):
-		if c == spell(w):
-			score3 += 9
+		"""
+			Compare with Autocorrect Lib
+		"""
+		from autocorrect import spell
+		score3 = 0
+		for w,c in tqdm(zip(ws, cs)):
+			if c == spell(w):
+				score3 += 9
 
-	return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score3) / (9 * len(ws))
+		return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score3) / (9 * len(ws))
+	else:
+		return float(score) / (9 * len(ws))
 
 
 if __name__ == '__main__':
@@ -294,8 +297,9 @@ if __name__ == '__main__':
 	if FRESH:
 
 		# Read dictionaries for candidate generation
-		word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
-		word_set = word_set.union(read_list_dict('Data/Dictionaries/word.list'))
+		# word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
+		# word_set = word_set.union(read_list_dict('Data/Dictionaries/word.list'))
+		word_set = read_list_dict('Data/Dictionaries/correct_exp.list')
 
 		# Read unigram counts for prior/LM model
 		unigrams = read_unigram_probs('Data/count_1w.txt') 
@@ -323,8 +327,9 @@ if __name__ == '__main__':
 				fout.write('\t'.join([word] + [guess for guess, score in guesses]) + '\n')
 
 	# Measure model accuracy
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0)
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0)
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0)
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1)
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2)
+	# suppress = True
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0, suppress=suppress)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0, suppress=suppress)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1, suppress=suppress)
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2, suppress=suppress)
