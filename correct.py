@@ -286,7 +286,7 @@ if __name__ == '__main__':
 		print "Usage: python correct.py <infile> <outfile>"
 		sys.exit(1)
 
-	FRESH = True
+	FRESH = False
 	DEBUG = False
 
 	# If executing first time
