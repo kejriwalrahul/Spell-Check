@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 class SpellChecker:
 
-	def __init__(self, word_set, unigrams, k, edit_counts, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
+	def __init__(self, word_set, unigrams, k, costs=None, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
 
 		# Initialize alphabet
 		self.alphabet = alphabet
@@ -43,10 +43,16 @@ class SpellChecker:
 			self.priors[word] = math.log(float(count+k) / self.N)
 
 		# Edit Distance Costs
-		self.insert_costs = np.ones((128,))
-		self.delete_costs = np.ones((128,))
-		self.transpose_costs  = np.ones((128,128))
-		self.substitute_costs = np.ones((128,128))
+		if costs != None:
+			self.insert_costs = costs['ins_costs']
+			self.delete_costs = costs['del_costs']
+			self.substitute_costs = costs['sub_costs']
+			self.transpose_costs  = costs['trans_costs']
+		else:
+			self.insert_costs = np.ones((128,))
+			self.delete_costs = np.ones((128,))
+			self.transpose_costs  = np.ones((128,128))
+			self.substitute_costs = np.ones((128,128))
 		
 		# Build phonetic index - Double Metaphone
 		self.dmeta = fuzzy.DMetaphone()
@@ -202,16 +208,6 @@ def read_unigram_probs(unigram_file):
 
 
 """
-	Read letter edit counts
-"""
-def read_edit_counts(edit_file):
-	with open(edit_file) as fp:
-		lines = [[el if i==0 else int(el.strip()) for i, el in enumerate(line.split('\t'))] for line in fp]
-		# lines = [[el if i==0 else int(el.strip()) for i, tok in enumerate(line.split('\t')) for el in tok.split('|')] for line in fp]
-	return lines
-
-
-"""
 	Check accuracy of model and compare with other libs
 """
 def error_file_accuracy(file, checker, fil_type=0, verbose=False, suppress=False):
@@ -304,11 +300,18 @@ if __name__ == '__main__':
 		# Read unigram counts for prior/LM model
 		unigrams = read_unigram_probs('Data/count_1w.txt') 
 
-		# Read edit counts for likelihood/channel model
-		edit_counts = read_edit_counts('Data/count_1edit.txt')
+		# Read edit costs
+		with open("Data/costs.npz") as fp:
+			costs = np.load(fp)
+			costs = {
+				'ins_costs': costs['ins_costs'],
+				'del_costs': costs['del_costs'],
+				'sub_costs': costs['sub_costs'],
+				'trans_costs': costs['trans_costs'],
+			}
 
 		# Build Checker model
-		checker = SpellChecker(word_set, unigrams, 1, edit_counts, lamda=0.05)
+		checker = SpellChecker(word_set, unigrams, 1, costs=costs, lamda=0.05)
 		with open('model.pkl', 'wb') as fp:
 			cPickle.dump(checker, fp)
 
@@ -316,11 +319,12 @@ if __name__ == '__main__':
 	with open('model.pkl', 'rb') as fp:
 		checker = cPickle.load(fp)
 
+
 	# Output results
 	with open(sys.argv[1]) as fin, open(sys.argv[2], 'w') as fout:
 		for line in fin:
 			word = line.strip()
-			guesses = checker.correct(word)
+			guesses = checker.correct(word, 10)
 			if DEBUG == True:
 				fout.write('\t'.join([word] + ['(%s,%.2f)'%(guess,score) for guess,score in guesses]) + '\n')
 			else:
@@ -333,3 +337,11 @@ if __name__ == '__main__':
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2, suppress=suppress)
+
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
+	# checker.lamda = 0.10
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
+	# checker.lamda = 0.15
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
+	# checker.lamda = 0.20
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
