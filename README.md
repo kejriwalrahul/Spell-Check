@@ -10,9 +10,6 @@ Spelling Correction using Noisy Channel Models
 6. nltk (for stopwords removal)
 
 ## Usage:
-1. To run word-level spell-correction, run `python src/correct.py <input_file_path> <output_file_path>`
-2. To run phrase-level spell-correction, run `python src/phrases.py <input_file_path> <output_file_path>`
-2. To run sentence-level spell-correction, run `python src/sentences.py <input_file_path> <output_file_path>`
-
-## Sentence correction
-Store the GloVe word vectors file (can be found at https://nlp.stanford.edu/projects/glove/) in the `Data/Vectors/` folder.
+1. To run word-level spell-correction, run `python correct.py <input_file_path> <output_file_path>`
+2. To run phrase-level spell-correction, run `python phrases.py <input_file_path> <output_file_path>`
+2. To run sentence-level spell-correction, run `python sentences.py <input_file_path> <output_file_path>`
