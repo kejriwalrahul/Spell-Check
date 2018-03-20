@@ -140,6 +140,7 @@ class SpellChecker:
 
 		# Edit Distance based candidates
 		candidates = self.__fastGenerateNeighbors('', wrong_word, 2)
+		candidates = self.__filter_unknown(candidates)
 
 		# DMetaphone based candidates
 		metaphone_bkts = self.dmeta(wrong_word)
@@ -167,16 +168,6 @@ class SpellChecker:
 		candidates = self.__generateCandidates(wrong_word)
 		scores	   = self.__rankCandidates(wrong_word, candidates)
 		return sorted(scores, key= lambda x:-x[1])[:top_k]
-
-
-	def accuracy_score(self, wrong_words, correct_words):
-		score = 0
-		for w,c in tqdm(zip(wrong_words, correct_words)):
-			guesses = self.correct(w)
-			if   len(guesses) >= 1 and guesses[0][0] == c:	score += 9
-			elif len(guesses) >= 2 and guesses[1][0] == c: 	score += 3
-			elif len(guesses) >= 3 and guesses[2][0] == c: 	score += 1
-		return float(score) / (9 * len(wrong_words))
 
 
 """
@@ -244,14 +235,17 @@ def error_file_accuracy(file, checker, fil_type=0, verbose=False, suppress=False
 	"""
 		Get model score
 	"""
-	score = 0
+	score = 0.0
 	for w,c in tqdm(zip(ws, cs)):
-		guesses = checker.correct(w)
-		if   len(guesses) >= 1 and guesses[0][0] == c:	score += 9
-		elif len(guesses) >= 2 and guesses[1][0] == c: 	score += 3
-		elif len(guesses) >= 3 and guesses[2][0] == c: 	score += 1
+		guesses = checker.correct(w, 10)
+		try: 
+			curr_mrr = 1.0 / (1 + next(i for i, (guess,score) in enumerate(guesses) if guess==c))
+		except:
+			curr_mrr = 0.0
+		score += curr_mrr
 		if verbose:
 			print "(%s,%s): %s" % (w,c,str(guesses))
+	score = score / len(ws)
 
 	if not suppress:
 		"""
@@ -259,29 +253,34 @@ def error_file_accuracy(file, checker, fil_type=0, verbose=False, suppress=False
 		"""	
 		import enchant
 		d = enchant.Dict('en_GB')
-		score2 = 0
+		score2 = 0.0
 		for w,c in tqdm(zip(ws, cs)):
 			guesses = d.suggest(w)
-			if   len(guesses) >= 1 and guesses[0] == c:	score2 += 9
-			elif len(guesses) >= 2 and guesses[1] == c: score2 += 3
-			elif len(guesses) >= 3 and guesses[2] == c: score2 += 1
+			try: 
+				curr_mrr = 1.0 / (1 + next(i for i, guess in enumerate(guesses) if guess==c))
+			except:
+				curr_mrr = 0.0
+			score2 += curr_mrr
+		score2 = score2 / len(ws)
 
 		"""
 			Compare with Autocorrect Lib
 		"""
 		from autocorrect import spell
-		score3 = 0
+		score3 = 0.0
 		for w,c in tqdm(zip(ws, cs)):
 			if c == spell(w):
-				score3 += 9
+				score3 += 1.0
+		score3 = score3 / len(ws)
 
-		return float(score) / (9 * len(ws)), float(score2) / (9 * len(ws)), float(score3) / (9 * len(ws))
+		return score, score2, score3
 	else:
-		return float(score) / (9 * len(ws))
+		return score
 
 
 if __name__ == '__main__':
 
+	# cmdline args check
 	if len(sys.argv) != 3:
 		print "Usage: python correct.py <infile> <outfile>"
 		sys.exit(1)
@@ -292,9 +291,13 @@ if __name__ == '__main__':
 	# If executing first time
 	if FRESH:
 
+		"""
+			# Deprecated Dictionaries
+			word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
+			word_set = word_set.union(read_list_dict('Data/Dictionaries/word.list'))
+		"""
+
 		# Read dictionaries for candidate generation
-		# word_set = read_csv_dict('Data/Dictionaries/dictionary.csv')
-		# word_set = word_set.union(read_list_dict('Data/Dictionaries/word.list'))
 		word_set = read_list_dict('Data/Dictionaries/correct_exp.list')
 
 		# Read unigram counts for prior/LM model
@@ -319,7 +322,6 @@ if __name__ == '__main__':
 	with open('model.pkl', 'rb') as fp:
 		checker = cPickle.load(fp)
 
-
 	# Output results
 	with open(sys.argv[1]) as fin, open(sys.argv[2], 'w') as fout:
 		for line in fin:
@@ -332,16 +334,9 @@ if __name__ == '__main__':
 
 	# Measure model accuracy
 	# suppress = True
+	# print "Accuracy: ", error_file_accuracy('Data/Errors/word_val_set.dat', checker, fil_type=0, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/missp.dat', checker, fil_type=0, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/wikipedia.dat', checker, fil_type=0, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/spell-errors.txt', checker, fil_type=1, suppress=suppress)
 	# print "Accuracy: ", error_file_accuracy('Data/Errors/holbrook-missp.dat', checker, fil_type=2, suppress=suppress)
-
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
-	# checker.lamda = 0.10
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
-	# checker.lamda = 0.15
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
-	# checker.lamda = 0.20
-	# print "Accuracy: ", error_file_accuracy('Data/Errors/aspell.dat', checker, fil_type=0, suppress=suppress)
