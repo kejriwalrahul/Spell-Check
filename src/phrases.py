@@ -264,13 +264,13 @@ if __name__ == '__main__':
 		# Build Checker model
 		p_checker = PhraseChecker(word_set, unigrams, 1, unigram_file, bigram_file, homophones, lamda=0.05)
 		
-		with open('phrase_model.pkl', 'wb') as fp:
+		with open('Data/Models/phrase_model.pkl', 'wb') as fp:
 			cPickle.dump(p_checker, fp)
 			
 	
 	# Load Checker model
 	
-	with open('phrase_model.pkl', 'rb') as fp:
+	with open('Data/Models/phrase_model.pkl', 'rb') as fp:
 		p_checker = cPickle.load(fp)
 	
 	

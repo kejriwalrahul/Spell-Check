@@ -242,13 +242,13 @@ if __name__ == '__main__':
 		# Build Checker model
 		s_checker = SentenceChecker(word_set, unigrams, 1, vec_file, homophones, lamda=0.05)
 		
-		with open('sentence_model.pkl', 'wb') as fp:
+		with open('Data/Models/sentence_model.pkl', 'wb') as fp:
 			cPickle.dump(s_checker, fp)
 			
 	
 	# Load Checker model
 	
-	with open('sentence_model.pkl', 'rb') as fp:
+	with open('Data/Models/sentence_model.pkl', 'rb') as fp:
 		s_checker = cPickle.load(fp)
 	
 	

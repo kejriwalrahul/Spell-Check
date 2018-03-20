@@ -315,11 +315,11 @@ if __name__ == '__main__':
 
 		# Build Checker model
 		checker = SpellChecker(word_set, unigrams, 1, costs=costs, lamda=0.05)
-		with open('model.pkl', 'wb') as fp:
+		with open('Data/Models/model.pkl', 'wb') as fp:
 			cPickle.dump(checker, fp)
 
 	# Load Checker model
-	with open('model.pkl', 'rb') as fp:
+	with open('Data/Models/model.pkl', 'rb') as fp:
 		checker = cPickle.load(fp)
 
 	# Output results
