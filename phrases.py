@@ -4,8 +4,8 @@ import operator
 
 class PhraseChecker(SpellChecker):
 	
-	def __init__(self,word_set, unigrams, k, edit_counts, unigram_file, bigram_file, homophones, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
-		SpellChecker.__init__(self,word_set, unigrams, k, edit_counts, lamda)
+	def __init__(self,word_set, unigrams, k, unigram_file, bigram_file, homophones, costs=None, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
+		SpellChecker.__init__(self,word_set, unigrams, k, costs, lamda)
 		
 		self.homophones = homophones
 		
@@ -224,6 +224,8 @@ class PhraseChecker(SpellChecker):
 		
 		if isHomophonic:
 			correct_words = h_words + correct_words
+			
+		correct_words = correct_words[:top_k]
 		
 		
 		return (correct_words,words[index_wrong],[item[1] for item in corrected])
@@ -238,7 +240,7 @@ if __name__ == '__main__':
 		print "Usage: python phrases.py <infile> <outfile>"
 		sys.exit(1)
 	
-	FRESH = True
+	FRESH = False
 	DEBUG = False
 	
 	if FRESH:
@@ -250,8 +252,6 @@ if __name__ == '__main__':
 		# Read unigram counts for prior/LM model
 		unigrams = read_unigram_probs('Data/count_1w.txt') 
 
-		# Read edit counts for likelihood/channel model
-		edit_counts = read_edit_counts('Data/count_1edit.txt')
 		
 		vec_file = 'Data/Vectors/glove.6B.50d.txt'
 		
@@ -262,7 +262,7 @@ if __name__ == '__main__':
 		homophones = get_homophones_from_file('Data/Dictionaries/homophones.txt')
 		
 		# Build Checker model
-		p_checker = PhraseChecker(word_set, unigrams, 1, edit_counts, unigram_file, bigram_file, homophones, lamda=0.05)
+		p_checker = PhraseChecker(word_set, unigrams, 1, unigram_file, bigram_file, homophones, lamda=0.05)
 		
 		with open('phrase_model.pkl', 'wb') as fp:
 			cPickle.dump(p_checker, fp)

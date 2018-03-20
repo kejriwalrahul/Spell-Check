@@ -2,8 +2,8 @@ from correct import *
 from nltk.corpus import stopwords
 class SentenceChecker(SpellChecker):
 	
-	def __init__(self,word_set, unigrams, k, edit_counts, vector_file, homophones, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
-		SpellChecker.__init__(self,word_set, unigrams, k, edit_counts, lamda)
+	def __init__(self,word_set, unigrams, k, vector_file, homophones, costs=None, lamda=1, alphabet='abcdefghijklmnopqrstuvwxyz'):
+		SpellChecker.__init__(self,word_set, unigrams, k, costs, lamda)
 		
 		self.homophones = homophones
 		
@@ -174,11 +174,13 @@ def get_cosine_sim(vec1,vec2):
 	
 
 def get_context_words(index,words):
+
+	num_context = 2
 	n = len(words)
 	
-	left = min(index,4)
+	left = min(index,num_context)
 	
-	right = min(4,n-index-1)
+	right = min(num_context,n-index-1)
 	
 	word_list = []
 	
@@ -233,15 +235,12 @@ if __name__ == '__main__':
 		# Read unigram counts for prior/LM model
 		unigrams = read_unigram_probs('Data/count_1w.txt') 
 
-		# Read edit counts for likelihood/channel model
-		edit_counts = read_edit_counts('Data/count_1edit.txt')
-		
 		vec_file = 'Data/Vectors/glove.6B.50d.txt'
 		
 		homophones = get_homophones_from_file('Data/Dictionaries/homophones.txt')
 		
 		# Build Checker model
-		s_checker = SentenceChecker(word_set, unigrams, 1, edit_counts, vec_file, homophones, lamda=0.05)
+		s_checker = SentenceChecker(word_set, unigrams, 1, vec_file, homophones, lamda=0.05)
 		
 		with open('sentence_model.pkl', 'wb') as fp:
 			cPickle.dump(s_checker, fp)
