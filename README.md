@@ -7,17 +7,12 @@ Spelling Correction using Noisy Channel Models
 3. cPickle
 4. tqdm
 5. numpy
+6. nltk (for stopwords removal)
 
 ## Usage:
-
-1. To run word-level spell-correction, run `python correct.py <input_file_path> <output_file_path>`
+1. To run word-level spell-correction, run `python src/correct.py <input_file_path> <output_file_path>`
+2. To run phrase-level spell-correction, run `python src/phrases.py <input_file_path> <output_file_path>`
+2. To run sentence-level spell-correction, run `python src/sentences.py <input_file_path> <output_file_path>`
 
 ## Sentence correction
 Store the GloVe word vectors file (can be found at https://nlp.stanford.edu/projects/glove/) in the `Data/Vectors/` folder.
-
-## Things to do:
-1. Sometimes suggestions are same as the wrong word, also avoid repeated suggestions
-2. Need a better dictionary
-3. Need a better way to identify the wrong word (rather than just context vector)
-4. Tune a few weights of the model
-5. Try using language model probabilities (trigram/quadrigram) to find word to be corrected for phrases/sentences rather than ad-hoc schemes/manual rules
